@@ -1,9 +1,8 @@
-import joblib
-from flask import Flask, request, jsonify
 import pandas as pd
 from flask_cors import CORS
 import pymysql
 import json
+
 
 app = Flask(__name__)
 CORS(app)  # This will enable CORS for all routes
@@ -33,17 +32,25 @@ conn = pymysql.connect(
     cursorclass=pymysql.cursors.DictCursor
 )
 
-sql_query = "SELECT *, CAST(alcohol_consumption AS UNSIGNED) AS alcohol_int, CAST(smoking AS UNSIGNED) AS smoking_int, CAST(has_hall AS UNSIGNED) AS hasHall_int, CAST(loves_cooking AS UNSIGNED) AS cul_skills_int FROM roommate_preferences;"
+
+# Define your SQL query to fetch the data
+sql_query = "SELECT * FROM roommate_preferences;"
+
+# Execute the SQL query and fetch the data
 with conn.cursor() as cursor:
     cursor.execute(sql_query)
     data = cursor.fetchall()
+
+# Close the database connection
 conn.close()
+
+# Convert the fetched data into a pandas DataFrame
 data_df = pd.DataFrame(data)
 
-data_df['alcohol_consumption'] = data_df['alcohol_int']
-data_df['smoking'] = data_df['smoking_int']
-data_df['has_hall'] = data_df['hasHall_int']
-data_df['loves_cooking'] = data_df['cul_skills_int']
+data_df['max_people'] = data_df['max_people'].astype(float)
+data_df['num_rooms'] = data_df['num_rooms'].astype(float)
+data_df['rent_budget'] = data_df['rent_budget'].astype(float)
+
 
 # Rename columns to match the desired names
 # Rename columns to match the desired names
@@ -59,11 +66,9 @@ data_df.rename(columns={
     'num_rooms': 'numRooms'
 }, inplace=True)
 
-# Define the columns used in the model
-categorical_features = ['gender', 'rent_budget', 'alcohol', 'dist_from_uni', 'smoking', 'cul_skills', 'hasHall',
-                        'maxPeople', 'numRooms']
 
-ATTRIBUTE_WEIGHTS = {'gender': 3, "rent_budget": 1.5, "smoking": 1.5, "alcohol": 1.5}
+# Define the columns used in the model
+categorical_features = ['gender', 'rent_budget', 'alcohol', 'dist_from_uni', 'smoking', 'cul_skills', 'hasHall', 'maxPeople', 'numRooms']
 
 
 def find_closest_roommates(input_features):
